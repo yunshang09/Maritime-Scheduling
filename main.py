@@ -8,7 +8,7 @@ NUM_CREWS_PER_SHIP = 3
 AVG_DRAFT = 2.5
 AVG_SPEED = 15.0
 START_DATE = "2024-07-29"
-START_TIME = "04:30"
+START_TIME = "04:00"
 END_TIME = "23:00"
 
 UNITS = [
@@ -23,12 +23,12 @@ UNITS = [
 ]
 
 TASKS = [
-    {"name": "#3变桨位置传感器异常故障处理", "type": "故障", "hours": 10, "position": "WindFarm1"},
+    {"name": "#3变桨位置传感器异常故障处理", "type": "故障", "hours": 3, "position": "WindFarm1"},
     {"name": "叶片裂缝检测", "type": "缺陷", "hours": 4, "position": "WindFarm2"},
-    {"name": "发电机温度异常", "type": "故障", "hours": 10, "position": "WindFarm3"},
+    {"name": "发电机温度异常", "type": "故障", "hours": 3, "position": "WindFarm3"},
     {"name": "主轴润滑系统检查", "type": "预警", "hours": 2, "position": "WindFarm4"},
     {"name": "控制系统校准", "type": "定期运维", "hours": 5, "position": "WindFarm5"},
-    {"name": "电缆连接检查", "type": "缺陷", "hours": 1.5, "position": "WindFarm6"},
+    {"name": "电缆连接检查", "type": "缺陷", "hours": 1, "position": "WindFarm6"},
     {"name": "传感器校准", "type": "定期运维", "hours": 3, "position": "WindFarm7"},
     {"name": "变压器检查", "type": "预警", "hours": 2, "position": "WindFarm8"},
 ]
