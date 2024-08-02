@@ -49,6 +49,12 @@ WEATHER = [
     {"time": "20:00", "depth": {"0": 1.43, "1": 1.43, "2": 1.43, "3": 1.43, "4": 1.43, "5": 1.43, "6": 1.43, "7": 1.43, "8": 1.43}},
     {"time": "22:00", "depth": {"0": 3.24, "1": 3.24, "2": 3.24, "3": 3.24, "4": 3.24, "5": 3.24, "6": 3.24, "7": 3.24, "8": 3.24}}
 ]
+weather_dict = {entry["time"]: entry["depth"] for entry in WEATHER}
+
+
+def get_depth_at_time(time_str, position):
+    depth = weather_dict.get(time_str, {}).get(str(position), None)
+    return depth
 
 
 # 时间矩阵（各个位置之间的到达时间）
@@ -83,20 +89,29 @@ def get_travel_time(from_node, to_node):
 
 
 # 检查任务的时间是否在安全窗口内，并且水深是否足够
-def is_within_safe_window(task):
+def is_within_safe_window(previous_task, task):
     task_position = task["position"]
+    if previous_task is None:
+        last_position = 0
+    else:
+        last_position = previous_task["position"]
     for weather in WEATHER:
         start = str_to_datetime(weather["time"])
-        route = ROUTE_TIMES.get("dock_" + task_position, 0)
+        route = get_travel_time(int(last_position), int(task_position))
+        arrive = start + timedelta(hours=route)
         end = start + timedelta(hours=route + task["hours"])
 
-        dock_depth = weather["depth"]["dock"]
-        wind_farm_depth = weather["depth"].get(task_position, 0)
+        start_str = start.strftime('%H:%M')
+        arrive_str = arrive.strftime('%H:%M')
+        end_str = end.strftime('%H:%M')
 
-        if dock_depth >= AVG_DRAFT and wind_farm_depth >= AVG_DRAFT:
-            if (start.time() >= str_to_datetime(START_TIME).time()
-                    and end.time() <= str_to_datetime(END_TIME).time()):
-                return True
+        depth_start = get_depth_at_time(start_str, task_position)
+        depth_arrive = get_depth_at_time(arrive_str, task_position)
+        depth_end = get_depth_at_time(end_str, task_position)
+        if depth_start is not None and depth_arrive is not None:
+            if depth_start >= AVG_DRAFT and depth_arrive >= AVG_DRAFT:
+                if start.time() >= str_to_datetime(START_TIME).time() and end.time() <= str_to_datetime(END_TIME).time():
+                    return True
     return False
 
 
@@ -109,12 +124,12 @@ def objective_function(schedule):
     for task in schedule:
         task_position = int(task["position"])
         travel_time = get_travel_time(last_position, task_position)
-        end = current + timedelta(hours=travel_time + task["hours"])
+        end = current_time + timedelta(hours=travel_time + task["hours"])
 
         # 更新当前时间为任务结束时间
         current_time = end
         last_position = task_position
-        total_downtime += time_diff(start, current)
+        total_downtime += time_diff(start, current_time)
 
     return total_downtime
 
@@ -190,7 +205,13 @@ def adaptive_vns():
         destroyed_solution = destroy_solution(current_solution[:])
         repaired_solution = repair_solution(destroyed_solution[:])
 
-        filtered_solution = [task for task in repaired_solution if is_within_safe_window(task)]
+        # filtered_solution = [task for task in repaired_solution if is_within_safe_window(task)]
+        filtered_solution = []
+        previous_task = None  # 初始化上一个任务为 None
+
+        for task in repaired_solution:
+            if is_within_safe_window(previous_task, task):
+                filtered_solution.append(task)
 
         new_cost = objective_function(filtered_solution)
 
@@ -225,7 +246,7 @@ for task_item in best_schedule:
         "类型": task_item["type"],
     })
 
-    current_time = end_time
+    now = end_time
 
 output = {
     "最佳调度方案": output_schedule,
